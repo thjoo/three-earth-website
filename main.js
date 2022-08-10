@@ -52,7 +52,7 @@ const sphere = new THREE.Mesh(
     fragmentShader: fragmentShader,
     uniforms: {
       globeTexture: {
-        value: new THREE.TextureLoader().load("./public/globe.png"),
+        value: new THREE.TextureLoader().load("./public/globe.jpg"),
       },
     },
   })
