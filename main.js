@@ -1,14 +1,15 @@
 import gsap from "gsap";
 import * as THREE from "three";
 import { Float32BufferAttribute } from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-import vertexShader from "./shaders/vertex.glsl?raw";
-import fragmentShader from "./shaders/fragment.glsl?raw";
 import atmosphereVertexShader from "./shaders/atmosphereVertex.glsl?raw";
 import atmosphereFragmentShader from "./shaders/atmosphereFragment.glsl?raw";
 
 const canvas = document.querySelector("canvas");
+
+const textureLoader = new THREE.TextureLoader();
+
+const radius = 6371;
 
 const sizes = {
   width: innerWidth,
@@ -39,42 +40,49 @@ renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(window.devicePixelRatio);
 
 const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x000000, 0.00000025);
+
 const camera = new THREE.PerspectiveCamera(
-  20,
+  25,
   sizes.width / sizes.height,
-  0.1,
-  1000
+  50,
+  1000000
 );
-camera.position.set(0, 0, 100);
+camera.position.z = radius * 9;
 
-// Controls
-// const controls = new OrbitControls(camera, canvas);
+// Lights
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+dirLight.position.set(-1, 0, 1).normalize();
+scene.add(dirLight);
 
-// controls.addEventListener("change", () => {
-//   renderer.render(scene, camera);
-// });
-
-// controls.update();
-
-// Create a sphere
+// Earth
 const sphere = new THREE.Mesh(
-  new THREE.SphereGeometry(5, 50, 50),
-  new THREE.ShaderMaterial({
-    // color: 0xff0000,
-    // map: new THREE.TextureLoader().load("./img/globe.png"),
-    vertexShader: vertexShader,
-    fragmentShader: fragmentShader,
-    uniforms: {
-      globeTexture: {
-        value: new THREE.TextureLoader().load("/globe.jpg"),
-      },
-    },
+  new THREE.SphereGeometry(radius, 50, 50),
+  new THREE.MeshPhongMaterial({
+    specular: 0x333333,
+    shininess: 5,
+    map: textureLoader.load("/earth_atmos_2048.jpeg"),
+    specularMap: textureLoader.load("earth_specular_2048.jpeg"),
+    normalMap: textureLoader.load("/earth_normal_2048.jpeg"),
+
+    // y scale is negated to compensate for normal map handedness.
+    normalScale: new THREE.Vector2(0.85, -0.85),
   })
 );
 
-// Create atmosphere (copy of sphere)
+// Clouds
+const clouds = new THREE.Mesh(
+  new THREE.SphereGeometry(radius, 50, 50),
+  new THREE.MeshLambertMaterial({
+    map: textureLoader.load("/earth_clouds_1024.png"),
+    transparent: true,
+  })
+);
+clouds.scale.set(1.005, 1.005, 1.005);
+
+// Create atmosphere outside
 const atmosphere = new THREE.Mesh(
-  new THREE.SphereGeometry(5.5, 50, 50),
+  new THREE.SphereGeometry(radius, 50, 50),
   new THREE.ShaderMaterial({
     // color: 0xff0000,
     // map: new THREE.TextureLoader().load("./img/globe.png"),
@@ -85,12 +93,11 @@ const atmosphere = new THREE.Mesh(
   })
 );
 
-atmosphere.scale.set(1.1, 1.1, 1.1);
-
+atmosphere.scale.set(1.105, 1.105, 1.105);
 scene.add(atmosphere);
 
 const group = new THREE.Group();
-group.add(sphere);
+group.add(sphere, clouds);
 scene.add(group);
 
 const starGeometry = new THREE.BufferGeometry();
@@ -142,7 +149,8 @@ const tick = () => {
   renderer.render(scene, camera);
 
   //Update objects
-  sphere.rotation.y = elapsedTime * 0.4;
+  sphere.rotation.y = elapsedTime * 0.16;
+  clouds.rotation.y = 1.4 * elapsedTime * 0.16;
   gsap.to(group.rotation, {
     x: -mouse.y * 0.5,
     y: mouse.x * 0.5,
