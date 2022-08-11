@@ -1,10 +1,14 @@
 import gsap from "gsap";
 import * as THREE from "three";
+import { Float32BufferAttribute } from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+
 import vertexShader from "./shaders/vertex.glsl?raw";
 import fragmentShader from "./shaders/fragment.glsl?raw";
 import atmosphereVertexShader from "./shaders/atmosphereVertex.glsl?raw";
 import atmosphereFragmentShader from "./shaders/atmosphereFragment.glsl?raw";
-import { Float32BufferAttribute } from "three";
+
+const canvas = document.querySelector("canvas");
 
 const sizes = {
   width: innerWidth,
@@ -25,22 +29,32 @@ addEventListener("resize", () => {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio), 2);
 });
 
+// Renderer
+const renderer = new THREE.WebGLRenderer({
+  antialias: true,
+  canvas: canvas,
+});
+// Setting the size of the renderer to full width and heigt, then appending to dom
+renderer.setSize(sizes.width, sizes.height);
+renderer.setPixelRatio(window.devicePixelRatio);
+
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
-  75,
+  20,
   sizes.width / sizes.height,
   0.1,
   1000
 );
+camera.position.set(0, 0, 100);
 
-const renderer = new THREE.WebGLRenderer({
-  antialias: true,
-  canvas: document.querySelector("canvas"),
-});
+// Controls
+// const controls = new OrbitControls(camera, canvas);
 
-// Setting the size of the renderer to full width and heigt, then appending to dom
-renderer.setSize(sizes.width, sizes.height);
-renderer.setPixelRatio(window.devicePixelRatio);
+// controls.addEventListener("change", () => {
+//   renderer.render(scene, camera);
+// });
+
+// controls.update();
 
 // Create a sphere
 const sphere = new THREE.Mesh(
@@ -60,7 +74,7 @@ const sphere = new THREE.Mesh(
 
 // Create atmosphere (copy of sphere)
 const atmosphere = new THREE.Mesh(
-  new THREE.SphereGeometry(5, 50, 50),
+  new THREE.SphereGeometry(5.5, 50, 50),
   new THREE.ShaderMaterial({
     // color: 0xff0000,
     // map: new THREE.TextureLoader().load("./img/globe.png"),
@@ -102,24 +116,53 @@ const stars = new THREE.Points(starGeometry, starMaterial);
 
 scene.add(stars);
 
-camera.position.z = 15;
-
 const mouse = {
-  x: undefined,
-  y: undefined,
+  x: 0,
+  y: 0,
 };
 
-function animate() {
-  requestAnimationFrame(animate);
+// Time
+// let time = Date.now();
+const clock = new THREE.Clock();
+
+// Animations
+const tick = () => {
+  // Time
+  const elapsedTime = clock.getElapsedTime();
+  // const currentTime = Date.now();
+  // const deltaTime = currentTime - time;
+  // time = currentTime;
+
+  requestAnimationFrame(tick);
+
+  // Controls
+  // controls.update();
+
+  // Render
   renderer.render(scene, camera);
-  sphere.rotation.y += 0.003;
+
+  //Update objects
+  sphere.rotation.y = elapsedTime * 0.4;
   gsap.to(group.rotation, {
     x: -mouse.y * 0.5,
     y: mouse.x * 0.5,
     duration: 2,
   });
-}
-animate();
+};
+
+tick();
+
+// function animate() {
+//   requestAnimationFrame(animate);
+//   renderer.render(scene, camera);
+//   sphere.rotation.y += 0.003;
+// gsap.to(group.rotation, {
+//   x: -mouse.y * 0.5,
+//   y: mouse.x * 0.5,
+//   duration: 2,
+// });
+// }
+// animate();
 
 addEventListener("mousemove", () => {
   mouse.x = (event.clientX / innerWidth) * 2 - 1;
