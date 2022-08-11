@@ -5,6 +5,9 @@ import { Float32BufferAttribute } from "three";
 import atmosphereVertexShader from "./shaders/atmosphereVertex.glsl?raw";
 import atmosphereFragmentShader from "./shaders/atmosphereFragment.glsl?raw";
 
+import starsVertexShader from "./shaders/stars/vertex.glsl?raw";
+import starsFragmentShader from "./shaders/stars/fragment.glsl?raw";
+
 const canvas = document.querySelector("canvas");
 
 const textureLoader = new THREE.TextureLoader();
@@ -27,7 +30,13 @@ addEventListener("resize", () => {
 
   // Update Renderer
   renderer.setSize(sizes.width, sizes.height);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio), 2);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  // Update stars
+  starMaterial.uniforms.uPixelRatio.value = Math.min(
+    window.devicePixelRatio,
+    2
+  );
 });
 
 // Renderer
@@ -37,7 +46,7 @@ const renderer = new THREE.WebGLRenderer({
 });
 // Setting the size of the renderer to full width and heigt, then appending to dom
 renderer.setSize(sizes.width, sizes.height);
-renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x000000, 0.00000025);
@@ -100,27 +109,62 @@ const group = new THREE.Group();
 group.add(sphere, clouds);
 scene.add(group);
 
-const starGeometry = new THREE.BufferGeometry();
-const starMaterial = new THREE.PointsMaterial({
-  color: 0xffffff,
-});
+// const starGeometry = new THREE.BufferGeometry();
+// const starMaterial = new THREE.PointsMaterial({
+//   color: 0xffffff,
+// });
 
-const starVertecies = [];
+// const starVertecies = [];
 
-for (let i = 0; i < 1000; i++) {
-  const x = (Math.random() - 0.5) * 2000;
-  const y = (Math.random() - 0.5) * 2000;
-  const z = -Math.random() * 1500;
-  starVertecies.push(x, y, z);
+// for (let i = 0; i < 1000; i++) {
+//   const x = (Math.random() - 0.5) * 2000;
+//   const y = (Math.random() - 0.5) * 2000;
+//   const z = -Math.random() * 1500;
+//   starVertecies.push(x, y, z);
+// }
+
+// starGeometry.setAttribute(
+//   "position",
+//   new THREE.Float32BufferAttribute(starVertecies, 3)
+// );
+
+// const stars = new THREE.Points(starGeometry, starMaterial);
+
+// scene.add(stars);
+
+// Stars
+const starsGeometry = new THREE.BufferGeometry();
+const starCount = 10000;
+const positionArray = new Float32Array(starCount * 3);
+const scaleArray = new Float32Array(starCount);
+
+for (let i = 0; i < starCount; i++) {
+  positionArray[i * 3 + 1] = (Math.random() - 0.5) * 450000;
+  positionArray[i * 3 + 2] = (Math.random() - 0.5) * 450000;
+  positionArray[i * 3 + 0] = (Math.random() - 0.5) * 450000;
+
+  scaleArray[i] = Math.random();
 }
 
-starGeometry.setAttribute(
+starsGeometry.setAttribute(
   "position",
-  new THREE.Float32BufferAttribute(starVertecies, 3)
+  new THREE.BufferAttribute(positionArray, 3)
 );
+starsGeometry.setAttribute("aScale", new THREE.BufferAttribute(scaleArray, 1));
 
-const stars = new THREE.Points(starGeometry, starMaterial);
+const starMaterial = new THREE.ShaderMaterial({
+  uniforms: {
+    uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+    uSize: { value: 1500000 },
+  },
+  vertexShader: starsVertexShader,
+  fragmentShader: starsFragmentShader,
+  transparent: true,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+});
 
+const stars = new THREE.Points(starsGeometry, starMaterial);
 scene.add(stars);
 
 const mouse = {
@@ -159,18 +203,6 @@ const tick = () => {
 };
 
 tick();
-
-// function animate() {
-//   requestAnimationFrame(animate);
-//   renderer.render(scene, camera);
-//   sphere.rotation.y += 0.003;
-// gsap.to(group.rotation, {
-//   x: -mouse.y * 0.5,
-//   y: mouse.x * 0.5,
-//   duration: 2,
-// });
-// }
-// animate();
 
 addEventListener("mousemove", () => {
   mouse.x = (event.clientX / innerWidth) * 2 - 1;
