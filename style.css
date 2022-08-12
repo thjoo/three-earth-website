@@ -52,6 +52,13 @@ html, body{
   display: flex;
   flex-direction: column;
   color: white;
+  transition: 0.6s ease-in-out;
+}
+
+.hero-main:hover {
+
+
+  text-shadow: 0 -40px 100px, 0 0 2px, 0 0 1em #BFE2FF, 0 0 0.5em #BFE2FF, 0 0 0.1em #BFE2FF;
 }
 
 .hero-second {
